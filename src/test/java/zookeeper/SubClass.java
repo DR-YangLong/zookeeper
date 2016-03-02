@@ -1,5 +1,8 @@
 package zookeeper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * package: zookeeper <br/>
  * blog:<a href="http://dr-yanglong.github.io/">dr-yanglong.github.io</a><br/>
@@ -9,30 +12,31 @@ package zookeeper;
  * @version 1.0    2016/3/2
  */
 public class SubClass extends ParentClass{
+    private static final Logger logger= LoggerFactory.getLogger(SubClass.class);
     private static int a=initStatic(1);
     static{
-        System.out.println("子类静态语句块");
+        logger.debug("子类静态语句块");
     }
     {
-        System.out.println("子类动态语句块");
+        logger.debug("子类动态语句块");
     }
     private static int b=initStatic(2);
     private int c=initDy();
     public SubClass() {
-        System.out.println("子类构造函数");
+        logger.debug("子类构造函数");
     }
 
     public static void main(String []args){
         new SubClass();
-        System.out.println("112112");
+        logger.debug("112112");
     }
     public static int initStatic(int n){
-        System.out.println("子类静态变量初始化："+n);
+        logger.debug("子类静态变量初始化："+n);
         return n;
     }
 
     public int initDy(){
-        System.out.println("子类普通成员变量初始化");
+        logger.debug("子类普通成员变量初始化");
         return 1;
     }
 
@@ -62,7 +66,7 @@ public class SubClass extends ParentClass{
 
     @Override
     protected void finalize() throws Throwable {
-        System.out.println("销毁子类");
+        logger.debug("销毁子类");
         super.finalize();
     }
 }

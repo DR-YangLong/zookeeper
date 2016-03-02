@@ -1,5 +1,8 @@
 package zookeeper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * package: zookeeper <br/>
  * blog:<a href="http://dr-yanglong.github.io/">dr-yanglong.github.io</a><br/>
@@ -9,26 +12,27 @@ package zookeeper;
  * @version 1.0    2016/3/2
  */
 public class ParentClass {
+    private static final Logger logger= LoggerFactory.getLogger(ParentClass.class);
     private static int i=initStatic(1);
     static{
-        System.out.println("父类静态语句块");
+        logger.debug("父类静态语句块");
     }
     {
-        System.out.println("父类动态语句块");
+        logger.debug("父类动态语句块");
     }
     private static int n=initStatic(2);
     private int k=initDy();
     public ParentClass() {
-        System.out.println("父类构造函数");
+        logger.debug("父类构造函数");
     }
 
     public static int initStatic(int n){
-        System.out.println("父类静态变量初始化："+n);
+        logger.debug("父类静态变量初始化："+n);
         return n;
     }
 
     public int initDy(){
-        System.out.println("父类普通成员变量初始化");
+        logger.debug("父类普通成员变量初始化");
         return 1;
     }
 
@@ -58,7 +62,7 @@ public class ParentClass {
 
     @Override
     protected void finalize() throws Throwable {
-        System.out.println("销毁子类");
+        logger.debug("销毁子类");
         super.finalize();
     }
 }
