@@ -1,4 +1,4 @@
-package zookeeper;
+package zookeeper.test;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,7 @@ public class SubClass extends ParentClass{
         logger.debug("112112");
     }
     public static int initStatic(int n){
-        logger.debug("子类静态变量初始化："+n);
+        logger.debug("子类静态变量初始化：" + n);
         return n;
     }
 

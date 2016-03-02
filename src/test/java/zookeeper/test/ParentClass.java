@@ -1,4 +1,4 @@
-package zookeeper;
+package zookeeper.test;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,7 @@ public class ParentClass {
     }
 
     public static int initStatic(int n){
-        logger.debug("父类静态变量初始化："+n);
+        logger.debug("父类静态变量初始化：" + n);
         return n;
     }
 
