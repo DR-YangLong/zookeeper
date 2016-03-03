@@ -3,6 +3,9 @@ package zookeeper.test;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import zookeeper.one.ZkDao;
 import zookeeper.one.ZkDaoImpl;
 
@@ -12,6 +15,7 @@ import zookeeper.one.ZkDaoImpl;
 public class AppTest 
     extends TestCase
 {
+    private static final Logger log= LoggerFactory.getLogger(AppTest.class);
     /**
      * Create the test case
      *
@@ -36,12 +40,17 @@ public class AppTest
     public void testApp()
     {
         ZkDao dao=new ZkDaoImpl();
-        dao.createNodeWithParent("/test/test1","ceshi".getBytes(),null,null);
+        String path="/test/test1";
+        //dao.createNodeWithParent(path,"ceshi".getBytes(),null,null);
+        //dao.deleteNode(path,0);
+        Stat stat=new Stat();
+        byte[] data=dao.readData(path,stat);
+        log.debug(new String(data));
+        log.debug(stat.toString());
         try {
-            Thread.sleep(30000);
+            Thread.sleep(3000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        assertTrue(true);
     }
 }

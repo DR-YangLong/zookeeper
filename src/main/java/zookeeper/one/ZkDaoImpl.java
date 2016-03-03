@@ -3,14 +3,17 @@ package zookeeper.one;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.api.BackgroundCallback;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.concurrent.Executor;
 
 /**
  * package: zookeeper.one <br/>
@@ -76,4 +79,81 @@ public class ZkDaoImpl implements ZkDao {
         }
         return flag;
     }
+
+    public boolean deleteNode(String path, int version) {
+        boolean flag = false;
+        try {
+            client.delete().guaranteed().deletingChildrenIfNeeded().withVersion(version).forPath(path);
+            flag = true;
+        } catch (Exception e) {
+            log.error("delete the node:" + path + ",with version:" + version + " failure!", e);
+        }
+        return flag;
+    }
+
+    public boolean deleteNode(String path, int version, BackgroundCallback callback) {
+        boolean flag = false;
+        try {
+            client.delete().guaranteed().deletingChildrenIfNeeded().withVersion(version).inBackground(callback).forPath(path);
+            flag = true;
+        } catch (Exception e) {
+            log.error("delete the node:" + path + ",with version:" + version + " failure!", e);
+        }
+        return flag;
+    }
+
+    public boolean deleteNode(String path, int version, BackgroundCallback callback, Executor executor) {
+        boolean flag = false;
+        try {
+            client.delete().guaranteed().deletingChildrenIfNeeded().withVersion(version).inBackground(callback, executor).forPath(path);
+            flag = true;
+        } catch (Exception e) {
+            log.error("delete the node:" + path + ",with version:" + version + " failure!", e);
+        }
+        return flag;
+    }
+
+    public boolean deleteNode(String path, int version, BackgroundCallback callback, Executor executor, Object context) {
+        boolean flag = false;
+        try {
+            client.delete().guaranteed().deletingChildrenIfNeeded().withVersion(version).inBackground(callback, context, executor).forPath(path);
+            flag = true;
+        } catch (Exception e) {
+            log.error("delete the node:" + path + ",with version:" + version + " failure!", e);
+        }
+        return flag;
+    }
+
+    public byte[] readData(String path) {
+        byte[] data = null;
+        try {
+            data = client.getData().forPath(path);
+        } catch (Exception e) {
+            log.error("get the data of node:" + path + ", failure!", e);
+        }
+        return data;
+    }
+
+    public byte[] readData(String path, Stat stat) {
+        byte[] data = null;
+        try {
+            data = client.getData().storingStatIn(stat).forPath(path);
+        } catch (Exception e) {
+            log.error("get the data of node:" + path + ", failure!", e);
+        }
+        return data;
+    }
+
+    public boolean updateDate(String path, byte[] data, int version) {
+        boolean flag = false;
+        try {
+            client.setData().withVersion(version).forPath(path, data);
+            flag = true;
+        } catch (Exception e) {
+            log.error("update the data of node:" + path + " with value:" + new String(data) + ", failure!", e);
+        }
+        return flag;
+    }
+
+
 }
