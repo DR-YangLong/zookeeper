@@ -4,8 +4,10 @@ import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.BackgroundCallback;
+import org.apache.curator.framework.api.CuratorWatcher;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
@@ -13,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 
 /**
@@ -40,6 +43,11 @@ public class ZkDaoImpl implements ZkDao {
         client.start();
     }
 
+    /**
+     * 初始化客户端
+     * @param connectString 链接字符串
+     * @param nameSpace
+     */
     public ZkDaoImpl(String connectString, String nameSpace) {
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
         client = CuratorFrameworkFactory.builder().connectString(connectString).sessionTimeoutMs(10000).
@@ -156,4 +164,64 @@ public class ZkDaoImpl implements ZkDao {
     }
 
 
+    public List<String> getChildren(String path) {
+        List<String> children = null;
+        try {
+            children = client.getChildren().forPath(path);
+        } catch (Exception e) {
+            log.error("get the children of node：" + path + " failure！", e);
+        }
+        return children;
+    }
+
+
+    public List<String> getChildren(String path, Stat stat) {
+        List<String> children = null;
+        try {
+            children = client.getChildren().storingStatIn(stat).forPath(path);
+        } catch (Exception e) {
+            log.error("get the children of node：" + path + " failure！", e);
+        }
+        return children;
+    }
+
+    public List<String> getChildren(String path, CuratorWatcher watcher) {
+        List<String> children = null;
+        try {
+            children = client.getChildren().usingWatcher(watcher).forPath(path);
+        } catch (Exception e) {
+            log.error("get the children of node：" + path + " failure！", e);
+        }
+        return children;
+    }
+
+    public List<String> getChildren(String path, CuratorWatcher watcher, Stat stat) {
+        List<String> children = null;
+        try {
+            children = client.getChildren().storingStatIn(stat).usingWatcher(watcher).forPath(path);
+        } catch (Exception e) {
+            log.error("get the children of node：" + path + " failure！", e);
+        }
+        return children;
+    }
+
+    public List<String> getChildren(String path, Watcher watcher) {
+        List<String> children = null;
+        try {
+            children = client.getChildren().usingWatcher(watcher).forPath(path);
+        } catch (Exception e) {
+            log.error("get the children of node：" + path + " failure！", e);
+        }
+        return children;
+    }
+
+    public List<String> getChildren(String path, Watcher watcher, Stat stat) {
+        List<String> children = null;
+        try {
+            children = client.getChildren().storingStatIn(stat).usingWatcher(watcher).forPath(path);
+        } catch (Exception e) {
+            log.error("get the children of node：" + path + " failure！", e);
+        }
+        return children;
+    }
 }

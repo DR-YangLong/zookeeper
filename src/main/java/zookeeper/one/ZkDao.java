@@ -1,11 +1,14 @@
 package zookeeper.one;
 
 import org.apache.curator.framework.api.BackgroundCallback;
+import org.apache.curator.framework.api.CuratorWatcher;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 
 /**
@@ -38,8 +41,8 @@ public interface ZkDao {
      *
      * @param path       节点路径
      * @param data       数据
-     * @param createMode 节点类型，临时，持久，序列，默认临时 {@see org.apache.zookeeper.CreateMode}
-     * @param acl        权限,默认world:anyone:crwda {@see org.apache.zookeeper.ZooDefs.Ids}
+     * @param createMode 节点类型，临时，持久，序列，默认临时 {@link org.apache.zookeeper.CreateMode}
+     * @param acl        权限,默认world:anyone:crwda {@link org.apache.zookeeper.ZooDefs.Ids}
      * @return 成功或失败
      */
     boolean createNodeOnly(String path, byte[] data, CreateMode createMode, ArrayList<ACL> acl);
@@ -108,10 +111,71 @@ public interface ZkDao {
 
     /**
      * 更新节点数据，如果不清楚版本，指定<code>-1</code>，注意如果指定版本可能会造成版本覆盖
-     * @param path 节点路径
-     * @param data 数据
+     *
+     * @param path    节点路径
+     * @param data    数据
      * @param version 版本
      * @return true/false
      */
-    boolean updateDate(String path,byte[] data,int version);
+    boolean updateDate(String path, byte[] data, int version);
+
+    /**
+     * 获取子节点
+     *
+     * @param path 节点路径
+     * @return 子节点数组
+     */
+    List<String> getChildren(String path);
+
+    /**
+     * 获取子节点并且获取当前节点的状态信息
+     *
+     * @param path 节点路径
+     * @param stat 节点状态
+     * @return 子节点数组
+     */
+    List<String> getChildren(String path, Stat stat);
+
+
+    /**
+     * 获取指定节点的子节点，并设置watcher｛@link org.apache.curator.framework.api.CuratorWatcher｝，
+     * 注意此watcher只能使用一次
+     *
+     * @param path    节点
+     * @param watcher watcher
+     * @return 子节点数组
+     */
+    List<String> getChildren(String path, CuratorWatcher watcher);
+
+    /**
+     * 获取指定节点的子节点，并设置watcher{@link org.apache.curator.framework.api.CuratorWatcher}，
+     * 注意此watcher只能使用一次。同时获取节点状态信息
+     *
+     * @param path    节点
+     * @param watcher watcher
+     * @param stat    节点状态
+     * @return 子节点数组
+     */
+    List<String> getChildren(String path, CuratorWatcher watcher, Stat stat);
+
+    /**
+     * 获取指定节点的子节点，并设置watcher{@link org.apache.zookeeper.Watcher}，
+     * 注意此watcher只能使用一次
+     *
+     * @param path    节点
+     * @param watcher watcher
+     * @return 子节点数组
+     */
+    List<String> getChildren(String path, Watcher watcher);
+
+    /**
+     * 获取指定节点的子节点，并设置watcher{@link org.apache.zookeeper.Watcher}，
+     * 注意此watcher只能使用一次。同时获取节点状态信息
+     *
+     * @param path    节点
+     * @param watcher watcher
+     * @param stat    节点状态
+     * @return 子节点数组
+     */
+    List<String> getChildren(String path, Watcher watcher, Stat stat);
 }
