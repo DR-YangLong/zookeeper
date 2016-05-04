@@ -5,6 +5,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.BackgroundCallback;
 import org.apache.curator.framework.api.CuratorWatcher;
+import org.apache.curator.framework.recipes.cache.*;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
@@ -13,6 +14,8 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import zookeeper.common.NodeCacheHandler;
+import zookeeper.common.PathChildrenHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +49,7 @@ public class ZkDaoImpl implements ZkDao {
     /**
      * 初始化客户端
      * @param connectString 链接字符串
-     * @param nameSpace
+     * @param nameSpace 节点根目录
      */
     public ZkDaoImpl(String connectString, String nameSpace) {
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
@@ -223,5 +226,21 @@ public class ZkDaoImpl implements ZkDao {
             log.error("get the children of node：" + path + " failure！", e);
         }
         return children;
+    }
+
+    public void addNodeWatcher(String path, boolean isCompressed, final NodeCacheHandler handler) throws Exception {
+        final NodeCache nodeCache=new NodeCache(this.client,path,isCompressed);
+        nodeCache.start(true);
+        nodeCache.getListenable().addListener(()->{
+            handler.nodeChanged(nodeCache);
+        });
+    }
+
+    public void addChildWatcher(String path, PathChildrenCache.StartMode startMode, boolean isCached, PathChildrenHandler handler) throws Exception {
+        final PathChildrenCache childrenCache=new PathChildrenCache(this.client,path,isCached);
+        childrenCache.start(startMode);
+        childrenCache.getListenable().addListener((CuratorFramework client, PathChildrenCacheEvent event)->{
+            handler.childrenChanged(childrenCache,event);
+        });
     }
 }

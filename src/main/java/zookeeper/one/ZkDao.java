@@ -2,10 +2,15 @@ package zookeeper.one;
 
 import org.apache.curator.framework.api.BackgroundCallback;
 import org.apache.curator.framework.api.CuratorWatcher;
+import org.apache.curator.framework.recipes.cache.NodeCacheListener;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+import zookeeper.common.NodeCacheHandler;
+import zookeeper.common.PathChildrenHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -178,4 +183,23 @@ public interface ZkDao {
      * @return 子节点数组
      */
     List<String> getChildren(String path, Watcher watcher, Stat stat);
+
+    /**
+     * 添加节点监听器
+     *
+     * @param path         接听节点
+     * @param isCompressed 数据是否压缩
+     * @param handler     监听器回调接口
+     */
+    void addNodeWatcher(String path, boolean isCompressed, NodeCacheHandler handler) throws Exception;
+
+    /**
+     * 添加子节点监听器
+     *
+     * @param path         路径
+     * @param startMode    初始化模式
+     * @param isCached  是否缓存节点数据
+     * @param handler     监听器回调接口
+     */
+    void addChildWatcher(String path, PathChildrenCache.StartMode startMode, boolean isCached, PathChildrenHandler handler) throws Exception;
 }
