@@ -189,17 +189,19 @@ public interface ZkDao {
      *
      * @param path         接听节点
      * @param isCompressed 数据是否压缩
-     * @param handler     监听器回调接口
+     * @param handler      监听器回调接口
+     * @param executor     线程池
      */
-    void addNodeWatcher(String path, boolean isCompressed, NodeCacheHandler handler) throws Exception;
+    void addNodeWatcher(String path, boolean isCompressed, NodeCacheHandler handler, Executor executor) throws Exception;
 
     /**
      * 添加子节点监听器
      *
-     * @param path         路径
-     * @param startMode    初始化模式
+     * @param path      路径
+     * @param startMode 初始化模式
      * @param isCached  是否缓存节点数据
-     * @param handler     监听器回调接口
+     * @param handler   监听器回调接口
+     * @param executor  线程池
      */
-    void addChildWatcher(String path, PathChildrenCache.StartMode startMode, boolean isCached, PathChildrenHandler handler) throws Exception;
+    void addChildWatcher(String path, PathChildrenCache.StartMode startMode, boolean isCached, PathChildrenHandler handler, Executor executor) throws Exception;
 }

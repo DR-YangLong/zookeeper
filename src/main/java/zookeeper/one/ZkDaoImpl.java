@@ -228,19 +228,19 @@ public class ZkDaoImpl implements ZkDao {
         return children;
     }
 
-    public void addNodeWatcher(String path, boolean isCompressed, final NodeCacheHandler handler) throws Exception {
+    public void addNodeWatcher(String path, boolean isCompressed, final NodeCacheHandler handler,Executor executor) throws Exception {
         final NodeCache nodeCache=new NodeCache(this.client,path,isCompressed);
         nodeCache.start(true);
         nodeCache.getListenable().addListener(()->{
             handler.nodeChanged(nodeCache);
-        });
+        },executor);
     }
 
-    public void addChildWatcher(String path, PathChildrenCache.StartMode startMode, boolean isCached, PathChildrenHandler handler) throws Exception {
+    public void addChildWatcher(String path, PathChildrenCache.StartMode startMode, boolean isCached, PathChildrenHandler handler,Executor executor) throws Exception {
         final PathChildrenCache childrenCache=new PathChildrenCache(this.client,path,isCached);
         childrenCache.start(startMode);
         childrenCache.getListenable().addListener((CuratorFramework client, PathChildrenCacheEvent event)->{
             handler.childrenChanged(childrenCache,event);
-        });
+        },executor);
     }
 }
