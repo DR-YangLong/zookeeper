@@ -1,0 +1,9 @@
+## 测试说明
+zk新建节点
+> /sourcelock/preemption
+
+然后运行**ResourcePreemptionLock**main方法查看效果。
+
+## 原理
+3个线程同时在**/sourcelock/preemption**下新建临时节点**lock**，成功建立的视为抢到资源的独占权限，可以操作资源，
+没有建立成功的视为没有抢到锁，只能阻塞等待前一个抢到锁的线程释放锁（删除临时节点），然后再和其他的线程一起竞争抢锁。
