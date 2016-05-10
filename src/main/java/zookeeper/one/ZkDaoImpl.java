@@ -5,6 +5,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.BackgroundCallback;
 import org.apache.curator.framework.api.CuratorWatcher;
+import org.apache.curator.framework.listen.ListenerContainer;
 import org.apache.curator.framework.recipes.cache.*;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
@@ -39,17 +40,20 @@ public class ZkDaoImpl implements ZkDao {
     //初始化连接目录
     private String nameSpace = DEFAULT_CONNECT_NAMESPACE;
 
+
+    public ZkDaoImpl(String nameSpace) {
+        this(DEFAULT_CONNECT_STRING, nameSpace);
+    }
+
     public ZkDaoImpl() {
-        RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
-        client = CuratorFrameworkFactory.builder().connectString(connectString).sessionTimeoutMs(10000).
-                retryPolicy(retryPolicy).namespace(nameSpace).build();
-        client.start();
+        this(DEFAULT_CONNECT_STRING, DEFAULT_CONNECT_NAMESPACE);
     }
 
     /**
      * 初始化客户端
+     *
      * @param connectString 链接字符串
-     * @param nameSpace 节点根目录
+     * @param nameSpace     节点根目录
      */
     public ZkDaoImpl(String connectString, String nameSpace) {
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
@@ -228,19 +232,33 @@ public class ZkDaoImpl implements ZkDao {
         return children;
     }
 
-    public void addNodeWatcher(String path, boolean isCompressed, final NodeCacheHandler handler,Executor executor) throws Exception {
-        final NodeCache nodeCache=new NodeCache(this.client,path,isCompressed);
+    public void addNodeWatcher(String path, boolean isCompressed, final NodeCacheHandler handler, Executor executor) throws Exception {
+        final NodeCache nodeCache = new NodeCache(this.client, path, isCompressed);
         nodeCache.start(true);
-        nodeCache.getListenable().addListener(()->{
-            handler.nodeChanged(nodeCache);
-        },executor);
+        ListenerContainer<NodeCacheListener> listenerContainer = nodeCache.getListenable();
+        if (listenerContainer != null) {
+            listenerContainer.addListener(() -> {
+                handler.nodeChanged(nodeCache);
+            }, executor);
+        } else {
+            listenerContainer.addListener(() -> {
+                handler.nodeChanged(nodeCache);
+            });
+        }
     }
 
-    public void addChildWatcher(String path, PathChildrenCache.StartMode startMode, boolean isCached, PathChildrenHandler handler,Executor executor) throws Exception {
-        final PathChildrenCache childrenCache=new PathChildrenCache(this.client,path,isCached);
+    public void addChildWatcher(String path, PathChildrenCache.StartMode startMode, boolean isCached, PathChildrenHandler handler, Executor executor) throws Exception {
+        final PathChildrenCache childrenCache = new PathChildrenCache(this.client, path, isCached);
         childrenCache.start(startMode);
-        childrenCache.getListenable().addListener((CuratorFramework client, PathChildrenCacheEvent event)->{
-            handler.childrenChanged(childrenCache,event);
-        },executor);
+        ListenerContainer<PathChildrenCacheListener> listenerContainer = childrenCache.getListenable();
+        if (executor != null) {
+            listenerContainer.addListener((CuratorFramework client, PathChildrenCacheEvent event) -> {
+                handler.childrenChanged(childrenCache, event);
+            }, executor);
+        } else {
+            listenerContainer.addListener((CuratorFramework client, PathChildrenCacheEvent event) -> {
+                handler.childrenChanged(childrenCache, event);
+            });
+        }
     }
 }
