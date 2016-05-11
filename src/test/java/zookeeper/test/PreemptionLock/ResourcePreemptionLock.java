@@ -32,6 +32,7 @@ public class ResourcePreemptionLock {
         //启动
         lockThread1.start();
         lockThread2.start();
-        lockThread3.run();
+        lockThread3.start();
+
     }
 }

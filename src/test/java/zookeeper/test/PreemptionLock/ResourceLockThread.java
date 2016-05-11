@@ -13,6 +13,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import static zookeeper.test.PreemptionLock.ResourcePreemptionLock.num;
 
 /**
@@ -39,51 +40,45 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
     @Override
     public void run() {
         log.debug("========================" + serverName + "开始执行======================");
-        //添加watcher标志位
-        boolean firstWatcher = true;
-        //创建节点，抢锁
-        boolean myLock = zkDao.createNodeOnly(LOCK_NODE, getGodNum(), CreateMode.EPHEMERAL, ZooDefs.Ids.OPEN_ACL_UNSAFE);
-        while (!myLock) {//如果没有抢到锁
-            log.debug("========================" + serverName + "没有抢到锁！======================");
-            //添加watcher
-            if (firstWatcher) {
-                firstWatcher = false;
-                try {
-                    //zkDao.addChildWatcher(WATCHER_PATH, PathChildrenCache.StartMode.BUILD_INITIAL_CACHE, true, this, new ThreadPoolExecutor(1, 4, 2000l, TimeUnit.SECONDS, new SynchronousQueue<Runnable>()));
-                    zkDao.addChildWatcher(WATCHER_PATH, PathChildrenCache.StartMode.BUILD_INITIAL_CACHE, true, this, null);
-                } catch (Exception e) {
-                    log.error(serverName + "添加watcher失败！中断执行！", e);
-                    throw new RuntimeException(serverName + "添加watcher失败！");
-                }
-            }
-            //阻塞线程等待获得其他服务（线程）的释放锁通知
-            try {
-                notifySign.await();
-            } catch (InterruptedException e) {
-                log.error("+++++++++++++++" + serverName + "阻塞失败++++++++++++++++++++++", e);
-            }
-            //得到通知其他服务（线程）已经释放锁，抢锁
-            myLock = zkDao.createNodeOnly(LOCK_NODE, getGodNum(), CreateMode.EPHEMERAL, ZooDefs.Ids.OPEN_ACL_UNSAFE);
-            if (!myLock) {
-                //依然没有抢到锁，重新创建CountDownLatch
+        //添加watcher
+        try {
+            //zkDao.addChildWatcher(WATCHER_PATH, PathChildrenCache.StartMode.BUILD_INITIAL_CACHE, true, this, new ThreadPoolExecutor(1, 4, 2000l, TimeUnit.SECONDS, new SynchronousQueue<Runnable>()));
+            zkDao.addChildWatcher(WATCHER_PATH, PathChildrenCache.StartMode.BUILD_INITIAL_CACHE, true, this, null);
+        } catch (Exception e) {
+            log.error(serverName + "添加watcher失败！中断执行！", e);
+            throw new RuntimeException(serverName + "添加watcher失败！");
+        }
+        boolean isFirst = true;
+        while (true) {//死循环抢锁
+            log.debug("========================" + serverName + "开始抢锁======================");
+            //创建节点，抢锁
+            boolean myLock = zkDao.createNodeOnly(LOCK_NODE, getGodNum(), CreateMode.EPHEMERAL, ZooDefs.Ids.OPEN_ACL_UNSAFE);
+            //判断是不是第一次抢锁，如果不是第一次，需要重建CountDownLatch
+            if (!isFirst) {
                 notifySign = new CountDownLatch(1);
+            }
+            if (!myLock) {
+                log.debug("========================" + serverName + "没有抢到锁！======================");
+                isFirst = false;//标识已经不是第一次抢锁
+                //阻塞线程等待获得其他服务（线程）的释放锁通知
+                try {
+                    log.error("+++++++++++++++" + serverName + "阻塞++++++++++++++++++++++");
+                    notifySign.await();
+                } catch (InterruptedException e) {
+                    log.error("+++++++++++++++" + serverName + "阻塞失败++++++++++++++++++++++", e);
+                }
+            } else {
+                log.debug("========================" + serverName + "抢到锁，解除阻塞，开始执行业务处理======================");
+                break;
             }
         }
         //抢到锁，进行业务处理
-        log.debug("========================" + serverName + "抢到锁，开始执行业务处理======================");
+        log.debug("========================" + serverName + "开始执行业务处理======================");
         if (num > 0) {
             //将修改后的num写到节点数据
             num = num - 1 <= 0 ? 0 : num - 1;
-            zkDao.updateDate(LOCK_NODE, getGodNum(), -1);
             log.debug("========================" + serverName + "结束执行业务处理，货物数减一，准备释放锁======================");
-            //等待一下= =
-            try {
-                Thread.sleep(3000l);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         } else {
-            zkDao.updateDate(LOCK_NODE, getGodNum(), -1);
             log.debug("========================" + serverName + "检查资源已耗尽，不再执行业务处理======================");
         }
         //删除节点
@@ -93,7 +88,7 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
     }
 
 
-    //watcher得到通知的事件并处理
+    //watcher得到通知的事件并处理,频繁通知，用同步锁
     @Override
     public void childrenChanged(PathChildrenCache pathChildrenCache, PathChildrenCacheEvent event) {
         //监听事情，处理子节点删除后发通知抢锁
@@ -103,11 +98,11 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
             String path = event.getData().getPath();
             System.out.println("收到监听" + path);
             if (path.contains(LOCK_NAME)) {
-                log.debug("+++++++++++++++++资源独占锁，" + serverName + "收到锁释放通知++++++++++++++++++");
-                String numStr = new String(event.getData().getData());
-                num = Integer.parseInt(numStr);
+                log.debug("+++++++++++++++++资源独占锁，" + serverName + "收到锁释放通知，此时的资源数：" + num + "++++++++++++++++++");
                 //发出通知
-                notifySign.countDown();
+                if (notifySign.getCount() > 0) {
+                    notifySign.countDown();
+                }
             } else {
                 //不是资源独占锁释放通知
             }
