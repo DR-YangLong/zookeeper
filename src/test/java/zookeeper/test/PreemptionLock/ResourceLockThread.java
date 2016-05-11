@@ -1,4 +1,4 @@
-package zookeeper.test.PreemptionLock;
+package zookeeper.test.preemptionlock;
 
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
@@ -10,11 +10,6 @@ import zookeeper.common.PathChildrenHandler;
 import zookeeper.one.ZkDao;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-import static zookeeper.test.PreemptionLock.ResourcePreemptionLock.num;
 
 /**
  * package: zookeeper.test <br/>
@@ -33,12 +28,19 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
     private static final String WATCHER_PATH = "/preemption";
     //全路径名称
     private static final String LOCK_NODE = WATCHER_PATH + LOCK_NAME;
-
+    //资源存储目录
+    private String sourcePath="/sourcenum";
     private static CountDownLatch notifySign = new CountDownLatch(1);
     private String serverName;
 
     @Override
     public void run() {
+        //等待其他线程
+        try {
+            Thread.sleep(5000l);
+        } catch (InterruptedException e) {
+            log.error("休眠失败！",e);
+        }
         log.debug("========================" + serverName + "开始执行======================");
         //添加watcher
         try {
@@ -52,7 +54,7 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
         while (true) {//死循环抢锁
             log.debug("========================" + serverName + "开始抢锁======================");
             //创建节点，抢锁
-            boolean myLock = zkDao.createNodeOnly(LOCK_NODE, getGodNum(), CreateMode.EPHEMERAL, ZooDefs.Ids.OPEN_ACL_UNSAFE);
+            boolean myLock = zkDao.createNodeOnly(LOCK_NODE, getGodNum(0), CreateMode.EPHEMERAL, ZooDefs.Ids.OPEN_ACL_UNSAFE);
             //判断是不是第一次抢锁，如果不是第一次，需要重建CountDownLatch
             if (!isFirst) {
                 notifySign = new CountDownLatch(1);
@@ -74,12 +76,19 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
         }
         //抢到锁，进行业务处理
         log.debug("========================" + serverName + "开始执行业务处理======================");
+        Integer num=getGodNum(zkDao.readData(sourcePath));
         if (num > 0) {
             //将修改后的num写到节点数据
             num = num - 1 <= 0 ? 0 : num - 1;
+            zkDao.updateDate(sourcePath,getGodNum(num),-1);
             log.debug("========================" + serverName + "结束执行业务处理，货物数减一，准备释放锁======================");
         } else {
             log.debug("========================" + serverName + "检查资源已耗尽，不再执行业务处理======================");
+        }
+        try {
+            Thread.sleep(5000l);
+        } catch (InterruptedException e) {
+            log.error("休眠失败！",e);
         }
         //删除节点
         zkDao.deleteNode(LOCK_NODE, -1);
@@ -98,7 +107,7 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
             String path = event.getData().getPath();
             System.out.println("收到监听" + path);
             if (path.contains(LOCK_NAME)) {
-                log.debug("+++++++++++++++++资源独占锁，" + serverName + "收到锁释放通知，此时的资源数：" + num + "++++++++++++++++++");
+                log.debug("+++++++++++++++++资源独占锁，" + serverName + "收到锁释放通知++++++++++++++++++");
                 //发出通知
                 if (notifySign.getCount() > 0) {
                     notifySign.countDown();
@@ -114,9 +123,19 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
      *
      * @return byte[]
      */
-    private static byte[] getGodNum() {
+    private static byte[] getGodNum(Integer num) {
         Integer numVal = (num == null || num < 0) ? 0 : num;
         return String.valueOf(numVal).getBytes();
+    }
+
+    /**
+     * 获取节点存储的库存
+     * @param bytes
+     * @return
+     */
+    private static Integer getGodNum(byte[] bytes){
+        String numVal=new String(bytes);
+        return Integer.parseInt(numVal);
     }
 
     public ZkDao getZkDao() {
@@ -133,5 +152,13 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
 
     public void setServerName(String serverName) {
         this.serverName = serverName;
+    }
+
+    public String getSourcePath() {
+        return sourcePath;
+    }
+
+    public void setSourcePath(String sourcePath) {
+        this.sourcePath = sourcePath;
     }
 }

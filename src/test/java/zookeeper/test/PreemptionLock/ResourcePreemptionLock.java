@@ -1,4 +1,4 @@
-package zookeeper.test.PreemptionLock;
+package zookeeper.test.preemptionlock;
 
 import zookeeper.one.ZkDao;
 import zookeeper.one.ZkDaoImpl;
@@ -13,26 +13,16 @@ import zookeeper.one.ZkDaoImpl;
  * @version 1.0    2016/5/10 22:52
  */
 public class ResourcePreemptionLock {
-    //资源数
-    public static Integer num = 2;
-
     public static void main(String[] args) {
         String parentPath = "sourcelock";
+        String sourcePath="/sourcenum";
         ZkDao zkDao = new ZkDaoImpl(parentPath);
         //初始化
         ResourceLockThread lockThread1 = new ResourceLockThread();
         lockThread1.setZkDao(zkDao);
-        lockThread1.setServerName("服务1");
-        ResourceLockThread lockThread2 = new ResourceLockThread();
-        lockThread2.setZkDao(zkDao);
-        lockThread2.setServerName("服务2");
-        ResourceLockThread lockThread3 = new ResourceLockThread();
-        lockThread3.setZkDao(zkDao);
-        lockThread3.setServerName("服务3");
+        lockThread1.setServerName("服务"+System.currentTimeMillis());
+        lockThread1.setSourcePath(sourcePath);
         //启动
         lockThread1.start();
-        lockThread2.start();
-        lockThread3.start();
-
     }
 }
