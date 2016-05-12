@@ -1,4 +1,4 @@
-package zookeeper.test.preemptionlock;
+package zookeeper.test.PreemptionLock;
 
 import zookeeper.one.ZkDao;
 import zookeeper.one.ZkDaoImpl;

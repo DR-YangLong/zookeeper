@@ -1,4 +1,4 @@
-package zookeeper.test.preemptionlock;
+package zookeeper.test.PreemptionLock;
 
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;

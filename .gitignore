@@ -1,3 +1,5 @@
 target
 zookeeper.iml
 .idea
+/src/test/java/zookeeper/test/Test.java
+/src/test/java/zookeeper/test/StringTest.java
