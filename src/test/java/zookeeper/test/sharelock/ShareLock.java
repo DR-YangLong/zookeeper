@@ -1,5 +1,7 @@
 package zookeeper.test.sharelock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import zookeeper.one.ZkDao;
 import zookeeper.one.ZkDaoImpl;
 
@@ -13,15 +15,17 @@ import java.util.Random;
  * @version 1.0    2016/5/12 12:08
  */
 public class ShareLock {
+    private static final Logger logger = LoggerFactory.getLogger(ShareLock.class);
+
     public static void main(String[] args) {
         String parent = "/sharelock";
         String scheme = "sourcelock";
-        Random random=new Random();
-        int n=random.nextInt(3);
-        String lockType = n>1?LockType.WRITE_LOCK.getType():LockType.READ_LOCK.getType();
+        Random random = new Random();
+        int n = random.nextInt(3);
+        String lockType = n > 1 ? LockType.WRITE_LOCK.getType() : LockType.READ_LOCK.getType();
         ZkDao zkDao = new ZkDaoImpl(scheme);
         ShareLockThread shareLock = new ShareLockThread();
-        shareLock.setServerName(""+System.currentTimeMillis());
+        shareLock.setServerName("" + System.currentTimeMillis());
         shareLock.setLockType(lockType);
         shareLock.setLockPath(parent);
         shareLock.setZkDao(zkDao);

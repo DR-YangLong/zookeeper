@@ -12,6 +12,7 @@ import zookeeper.one.ZkDao;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 
 /**
@@ -25,8 +26,8 @@ public class ShareLockThread extends Thread implements PathChildrenHandler {
     private static final Logger logger = LoggerFactory.getLogger(ShareLockThread.class);
     //服务名称
     private String serverName;
-    //阻塞锁，可重用
-    private CyclicBarrier lock = new CyclicBarrier(2);
+    //阻塞锁，不可重用
+    private CountDownLatch lock = new CountDownLatch(1);
     private ZkDao zkDao;
     //锁类型
     private String lockType = LockType.READ_LOCK.getType();
@@ -63,8 +64,9 @@ public class ShareLockThread extends Thread implements PathChildrenHandler {
             //判断自己是否是锁持有者，不是就阻塞
             if (!isUnLock(children)) {
                 try {
+                    logger.error("=====================" + serverName + "没有持有锁，阻塞======================");
                     lock.await();//---转到watcher执行
-                } catch (InterruptedException | BrokenBarrierException e) {
+                } catch (InterruptedException e) {
                     logger.error("=====================" + serverName + "阻塞失败==================", e);
                 }
             } else {
@@ -75,7 +77,8 @@ public class ShareLockThread extends Thread implements PathChildrenHandler {
             //获取锁队列
             children = zkDao.getChildren(lockPath);
             if (!isUnLock(children)) {//如果仍然不能解锁
-                lock.reset();//重置计数器
+                logger.error("=====================" + serverName + "不能解锁，重置计数器==================");
+                lock = new CountDownLatch(1);//重置计数器
             } else {//可以解锁
                 break;
             }
@@ -100,19 +103,16 @@ public class ShareLockThread extends Thread implements PathChildrenHandler {
         }
         logger.debug("==============" + serverName + "业务处理结束================");
         //释放锁
-        zkDao.deleteNode(localName, -1);
+        String nodeName = lockPath + "/" + localName;
+        zkDao.deleteNode(nodeName, -1);
     }
 
     @Override
-    public void childrenChanged(PathChildrenCache pathChildrenCache, PathChildrenCacheEvent event) {
+    public synchronized void childrenChanged(PathChildrenCache pathChildrenCache, PathChildrenCacheEvent event) {
         PathChildrenCacheEvent.Type notifyType = event.getType();
         if (notifyType.equals(PathChildrenCacheEvent.Type.CHILD_REMOVED)) {
             logger.debug("++++++" + serverName + "监听到子节点移除通知++++++");
-            try {
-                lock.await();
-            } catch (InterruptedException | BrokenBarrierException e) {
-                logger.error("++++++" + serverName + "watcher中阻塞失败++++++++", e);
-            }
+            lock.countDown();
         } else if (notifyType.equals(PathChildrenCacheEvent.Type.CHILD_ADDED)) {
             logger.debug("++++++" + serverName + "监听到子节点添加通知++++++");
         } else if (notifyType.equals(PathChildrenCacheEvent.Type.CHILD_UPDATED)) {
@@ -130,6 +130,7 @@ public class ShareLockThread extends Thread implements PathChildrenHandler {
      * @return true/false 能不能解锁
      */
     private boolean isUnLock(List<String> nodes) {
+        nodes.sort((String node1, String node2) -> node1.split("-")[1].compareTo(node2.split("-")[1]));
         boolean unLock = false;
         if (nodes == null || nodes.isEmpty()) {
             return unLock;
@@ -141,7 +142,7 @@ public class ShareLockThread extends Thread implements PathChildrenHandler {
         for (int i = 0; i < nodes.size(); i++) {
             String nodeName = nodes.get(i);
             if (prefix.equals(nodeName.split("-")[0])) {//如果是本节点
-                localName=nodeName;
+                localName = nodeName;
                 break;
             } else {//，记录锁类型
                 lockSeq.add(nodeName.indexOf(LockType.READ_LOCK.getType()) > -1 ? LockType.READ_LOCK.getType() : LockType.WRITE_LOCK.getType());
