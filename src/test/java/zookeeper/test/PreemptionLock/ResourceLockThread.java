@@ -105,7 +105,7 @@ public class ResourceLockThread extends Thread implements PathChildrenHandler {
         //只处理锁释放通知
         if (notifyType.equals(PathChildrenCacheEvent.Type.CHILD_REMOVED)) {
             String path = event.getData().getPath();
-            System.out.println("收到监听" + path);
+            log.debug("收到监听" + path);
             if (path.contains(LOCK_NAME)) {
                 log.debug("+++++++++++++++++资源独占锁，" + serverName + "收到锁释放通知++++++++++++++++++");
                 //发出通知
